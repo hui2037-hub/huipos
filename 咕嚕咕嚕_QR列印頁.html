@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>咕嚕咕嚕 QR Code 列印</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#f5f5f5;font-family:'PingFang TC','Microsoft JhengHei',sans-serif;padding:20px}
+
+  .screen-header{text-align:center;margin-bottom:24px}
+  .screen-header h1{font-size:1.4rem;color:#2e7d52;font-weight:900}
+  .screen-header p{color:#666;font-size:.85rem;margin-top:4px}
+  .btn-print{background:#2e7d52;color:#fff;border:none;padding:10px 32px;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:12px}
+  .btn-print:hover{background:#3da068}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:960px;margin:0 auto}
+
+  .ticket{
+    background:#fff;border-radius:12px;padding:20px 16px;text-align:center;
+    box-shadow:0 2px 8px rgba(0,0,0,.1);
+    border:2px solid #d0e4d8;
+    page-break-inside:avoid;
+  }
+  .ticket.takeout{border-color:#f5c070;background:#fffdf5}
+  .shop-name{font-size:.95rem;font-weight:900;color:#2e7d52;letter-spacing:.1em;margin-bottom:2px}
+  .shop-sub{font-size:.6rem;color:#999;letter-spacing:.15em;margin-bottom:12px}
+  .table-label{
+    font-size:1.5rem;font-weight:900;color:#1a2e22;
+    margin-bottom:4px;
+  }
+  .ticket.takeout .table-label{color:#7a4500}
+  .table-sub{font-size:.7rem;color:#888;margin-bottom:12px}
+  .qr-wrap{background:#fff;padding:8px;border-radius:8px;display:inline-block;border:1px solid #eee;margin-bottom:10px}
+  .scan-hint{font-size:.65rem;color:#aaa;line-height:1.5}
+  .divider{border:none;border-top:1px dashed #ddd;margin:10px 0}
+
+  /* PRINT */
+  @media print{
+    body{background:#fff;padding:8px}
+    .screen-header{display:none}
+    .grid{grid-template-columns:repeat(4,1fr);gap:10px;max-width:100%}
+    .ticket{box-shadow:none;border:1.5px solid #ccc;padding:14px 10px}
+  }
+</style>
+</head>
+<body>
+
+<div class="screen-header">
+  <h1>🖨️ QR Code 列印頁</h1>
+  <p>列印後裁剪放置各桌，外帶貼於外帶取餐區</p>
+  <button class="btn-print" onclick="window.print()">列印全部 QR Code</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+// ── 設定：點菜頁網址 ──────────────────────────────────────────
+// 若部署到伺服器請改為實際網址，例如：
+// const BASE = 'https://yoursite.com/咕嚕咕嚕_點菜頁.html';
+const BASE = window.location.href.replace('咕嚕咕嚕_QR列印頁.html','咕嚕咕嚕_點菜頁.html');
+
+const tables = [
+  {id:'1', label:'1 號桌', sub:'請掃描點餐', cls:''},
+  {id:'2', label:'2 號桌', sub:'請掃描點餐', cls:''},
+  {id:'3', label:'3 號桌', sub:'請掃描點餐', cls:''},
+  {id:'4', label:'4 號桌', sub:'請掃描點餐', cls:''},
+  {id:'5', label:'5 號桌', sub:'請掃描點餐', cls:''},
+  {id:'6', label:'6 號桌', sub:'請掃描點餐', cls:''},
+  {id:'takeout', label:'外 帶', sub:'掃描後線上點餐', cls:'takeout'},
+];
+
+const grid = document.getElementById('grid');
+
+tables.forEach(t => {
+  const url = BASE + '?table=' + t.id;
+
+  const div = document.createElement('div');
+  div.className = 'ticket ' + t.cls;
+  div.innerHTML = `
+    <div class="shop-name">咕嚕咕嚕</div>
+    <div class="shop-sub">傳 統 小 吃</div>
+    <div class="table-label">${t.label}</div>
+    <div class="table-sub">${t.sub}</div>
+    <div class="qr-wrap" id="qr-${t.id}"></div>
+    <hr class="divider">
+    <div class="scan-hint">📱 用手機掃描點餐<br>即時傳送廚房</div>
+  `;
+  grid.appendChild(div);
+
+  // slight delay to let DOM settle
+  setTimeout(() => {
+    new QRCode(document.getElementById('qr-'+t.id), {
+      text: url,
+      width: 150, height: 150,
+      colorDark: '#1a2e22',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }, 50);
+});
+</script>
+</body>
+</html>
