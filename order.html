@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>咕嚕咕嚕傳統小吃</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f5f0;--s1:#fff;--s2:#f7faf7;--s3:#edf2ed;
+  --acc:#2e7d52;--acc2:#3da068;--acc3:#c8e6d4;
+  --red:#d94040;--amber:#e07c20;
+  --txt:#1a2e22;--dim:#6b8878;--bdr:#d0e4d8;--r:10px;
+}
+body{background:var(--bg);color:var(--txt);font-family:'PingFang TC','Microsoft JhengHei','Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+
+/* HEADER */
+header{background:var(--acc);padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 8px #2e7d5230;position:sticky;top:0;z-index:50}
+.logo-wrap{display:flex;flex-direction:column;line-height:1.1}
+.logo-main{font-size:1.2rem;font-weight:900;color:#fff;letter-spacing:.1em}
+.logo-sub{font-size:.58rem;color:#a8d8bc;letter-spacing:.18em}
+.tbl-pill{background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:18px;padding:4px 14px;font-size:.8rem;font-weight:800;color:#fff}
+.tbl-pill.to{background:rgba(255,200,100,.25);border-color:rgba(255,200,100,.5)}
+
+/* CATEGORY BAR */
+.cat-bar{display:flex;gap:6px;padding:10px 14px;background:var(--s1);border-bottom:1px solid var(--bdr);overflow-x:auto;flex-shrink:0;scrollbar-width:none;position:sticky;top:54px;z-index:40;box-shadow:0 1px 4px #2e7d521a}
+.cat-bar::-webkit-scrollbar{display:none}
+.cat-btn{white-space:nowrap;padding:5px 15px;border-radius:18px;border:1.5px solid var(--bdr);background:transparent;color:var(--dim);font-size:.85rem;cursor:pointer;font-family:inherit;transition:.12s}
+.cat-btn.on{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700}
+
+/* ITEMS */
+.items-wrap{padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start;flex:1}
+.card{background:var(--s1);border:1.5px solid var(--bdr);border-radius:var(--r);padding:12px 11px;cursor:pointer;transition:.13s;position:relative;user-select:none;box-shadow:0 1px 4px #00000008}
+.card:active{transform:scale(.97);background:#f0faf4}
+.card.picked{border-color:var(--acc);background:#f0faf4}
+.card-cat{font-size:.6rem;color:var(--dim);margin-bottom:2px}
+.card-name{font-size:.92rem;font-weight:700;line-height:1.25;margin-bottom:5px}
+.card-price{color:var(--acc);font-size:.95rem;font-weight:800}
+.card-price::before{content:'$';font-size:.7em}
+.qty-pip{position:absolute;top:-5px;right:-5px;background:var(--acc);color:#fff;font-weight:900;font-size:.68rem;width:19px;height:19px;border-radius:50%;display:none;align-items:center;justify-content:center}
+.card.picked .qty-pip{display:flex}
+
+/* CART BAR (sticky bottom) */
+.cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--s1);border-top:2px solid var(--bdr);padding:10px 16px;display:flex;align-items:center;gap:10px;z-index:50;box-shadow:0 -2px 10px #2e7d521a}
+.cart-info{flex:1;font-size:.82rem;color:var(--dim)}
+.cart-count{font-size:1rem;font-weight:800;color:var(--txt)}
+.cart-total{color:var(--acc);font-weight:800}
+.cart-btn{background:var(--acc);color:#fff;border:none;padding:10px 20px;border-radius:var(--r);font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit;white-space:nowrap}
+.cart-btn:disabled{background:var(--bdr);color:var(--dim);cursor:not-allowed}
+
+/* VARIANT MODAL */
+.vbg{display:none;position:fixed;inset:0;background:#1a2e2244;z-index:100;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+.vbg.on{display:flex}
+.vmodal{background:var(--s1);border-radius:18px 18px 0 0;padding:22px 18px 32px;width:100%;max-width:480px;border-top:2px solid var(--bdr);max-height:80vh;overflow-y:auto}
+.vmodal h3{color:var(--acc);font-size:1rem;margin-bottom:14px}
+.vgroup{margin-bottom:14px}
+.vgroup label{font-size:.75rem;color:var(--dim);display:block;margin-bottom:7px;font-weight:600}
+.vopts{display:flex;flex-wrap:wrap;gap:7px}
+.vopt{padding:7px 16px;border-radius:8px;border:1.5px solid var(--bdr);background:var(--s3);color:var(--txt);cursor:pointer;font-size:.88rem;font-family:inherit;transition:.1s}
+.vopt.on{border-color:var(--acc);background:var(--acc);color:#fff;font-weight:700}
+.vnote{width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--bdr);background:var(--s3);color:var(--txt);font-family:inherit;font-size:.88rem;resize:none;margin-top:8px}
+.vnote:focus{outline:none;border-color:var(--acc)}
+.vactions{display:flex;gap:8px;margin-top:16px}
+.vcancel{flex:1;padding:11px;border-radius:8px;border:1.5px solid var(--bdr);background:var(--s3);color:var(--dim);cursor:pointer;font-family:inherit}
+.vadd{flex:2;padding:11px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-weight:800;cursor:pointer;font-family:inherit;font-size:.95rem}
+
+/* ORDER SHEET (slide up) */
+.sheet-bg{display:none;position:fixed;inset:0;background:#1a2e2255;z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+.sheet-bg.on{display:flex}
+.sheet{background:var(--s1);border-radius:18px 18px 0 0;padding:20px 18px 36px;width:100%;max-width:480px;border-top:2px solid var(--bdr);max-height:85vh;overflow-y:auto}
+.sheet h3{color:var(--acc);font-size:1rem;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.sheet-close{font-size:.75rem;color:var(--dim);background:none;border:none;cursor:pointer;font-family:inherit}
+.srow{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--bdr)}
+.srow:last-of-type{border:none}
+.sinfo{flex:1;min-width:0}
+.sname{font-size:.88rem;font-weight:600}
+.smeta{font-size:.72rem;color:var(--dim);margin-top:1px}
+.sprice{font-size:.82rem;color:var(--acc);font-weight:700;white-space:nowrap}
+.sqctrl{display:flex;align-items:center;gap:5px}
+.sqbtn{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--bdr);background:var(--s3);color:var(--txt);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.sqbtn:hover{border-color:var(--acc);color:var(--acc)}
+.sqnum{font-size:.88rem;font-weight:800;min-width:16px;text-align:center;color:var(--acc)}
+.sheet-total{display:flex;justify-content:space-between;font-size:1rem;font-weight:800;color:var(--txt);padding:10px 0 14px;border-top:2px solid var(--bdr);margin-top:4px}
+.sheet-total span:last-child{color:var(--acc)}
+.sheet-submit{width:100%;padding:13px;border-radius:var(--r);border:none;background:var(--acc);color:#fff;font-size:1rem;font-weight:900;cursor:pointer;font-family:inherit}
+.sheet-submit:hover{background:var(--acc2)}
+
+/* SUCCESS */
+.done-bg{display:none;position:fixed;inset:0;background:var(--bg);z-index:300;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px}
+.done-bg.on{display:flex}
+.done-icon{font-size:5rem}
+.done-title{color:var(--acc);font-size:1.8rem;font-weight:900}
+.done-sub{color:var(--dim);font-size:.9rem;line-height:1.6}
+.done-oid{font-size:.85rem;color:var(--acc);font-weight:700;background:#e8f5ee;border:1.5px solid var(--acc3);border-radius:20px;padding:5px 16px}
+.done-more{background:var(--acc);color:#fff;border:none;padding:12px 32px;border-radius:var(--r);font-family:inherit;font-size:.95rem;font-weight:900;cursor:pointer;margin-top:6px}
+
+.spacer{height:80px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <span class="logo-main">咕嚕咕嚕</span>
+    <span class="logo-sub">傳 統 小 吃</span>
+  </div>
+  <div class="tbl-pill" id="tbl-pill">載入中…</div>
+</header>
+
+<div class="cat-bar" id="cat-bar"></div>
+<div class="items-wrap" id="items-wrap"></div>
+<div class="spacer"></div>
+
+<!-- Cart bar -->
+<div class="cart-bar">
+  <div class="cart-info">
+    <span class="cart-count" id="cart-count">0 項</span>
+    <span class="cart-total" id="cart-total"></span>
+  </div>
+  <button class="cart-btn" id="cart-btn" disabled onclick="openSheet()">查看點單</button>
+</div>
+
+<!-- Variant modal -->
+<div class="vbg" id="vbg">
+  <div class="vmodal">
+    <h3 id="vname"></h3>
+    <div id="vgroups"></div>
+    <textarea class="vnote" id="vnote" rows="2" placeholder="備註（不要辣、少油…）"></textarea>
+    <div class="vactions">
+      <button class="vcancel" onclick="closeV()">取消</button>
+      <button class="vadd" onclick="confirmV()">加入點單</button>
+    </div>
+  </div>
+</div>
+
+<!-- Order sheet -->
+<div class="sheet-bg" id="sheetbg">
+  <div class="sheet">
+    <h3>🧾 確認點單 <button class="sheet-close" onclick="closeSheet()">✕ 關閉</button></h3>
+    <div id="sheet-rows"></div>
+    <div class="sheet-total"><span>合計</span><span id="sheet-total-val"></span></div>
+    <button class="sheet-submit" onclick="submitOrder()">✓ 送出點單給廚房</button>
+  </div>
+</div>
+
+<!-- Done -->
+<div class="done-bg" id="donebg">
+  <div class="done-icon">🎉</div>
+  <div class="done-title">點單已送出！</div>
+  <div class="done-sub">廚房已收到您的訂單<br>請稍候，我們盡快為您準備</div>
+  <div class="done-oid" id="done-oid"></div>
+  <button class="done-more" onclick="addMore()">繼續加點</button>
+</div>
+
+<script>
+const MENU=[
+  {id:'pork-rice',name:'滷肉飯',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'rice',name:'白飯',cat:'飯/麵',price:30,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'meat-soup-rice',name:'肉羹飯',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'soup-rice',name:'清羹飯',cat:'飯/麵',price:80,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'mixed-soup-rice',name:'綜合羹飯',cat:'飯/麵',price:120,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'squid-rice',name:'魚酥羹飯',cat:'飯/麵',price:90,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'cfish-rice',name:'花枝羹飯',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'pork-noodle',name:'肉羹麵',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'pork-flour',name:'肉羹米粉',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'pork-rnoodle',name:'肉羹粄條',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'pork-bnoodle',name:'肉羹冬粉',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'squid-noodle',name:'魚酥羹麵',cat:'飯/麵',price:90,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'squid-flour',name:'魚酥羹米粉',cat:'飯/麵',price:90,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'squid-rnoodle',name:'魚酥羹粄條',cat:'飯/麵',price:90,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'squid-bnoodle',name:'魚酥羹冬粉',cat:'飯/麵',price:90,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'cfish-noodle',name:'花枝羹麵',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'cfish-flour',name:'花枝羹米粉',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'cfish-rnoodle',name:'花枝羹粄條',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'cfish-bnoodle',name:'花枝羹冬粉',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'mix-noodle',name:'綜合羹麵',cat:'飯/麵',price:120,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'mix-flour',name:'綜合羹米粉',cat:'飯/麵',price:120,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'mix-rnoodle',name:'綜合羹粄條',cat:'飯/麵',price:120,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'mix-bnoodle',name:'綜合羹冬粉',cat:'飯/麵',price:120,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'plain-noodle',name:'清羹麵',cat:'飯/麵',price:80,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'plain-flour',name:'清羹米粉',cat:'飯/麵',price:80,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'plain-rnoodle',name:'清羹粄條',cat:'飯/麵',price:80,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'plain-bnoodle',name:'清羹冬粉',cat:'飯/麵',price:80,v:[{t:'尺寸',o:['正常','加大']}]},
+  {id:'soup-noodle',name:'切仔麵',cat:'飯/麵',price:80,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'soup-flour',name:'切仔米粉',cat:'飯/麵',price:80,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'soup-rnoodle',name:'切仔粄條',cat:'飯/麵',price:80,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'soup-bnoodle',name:'切仔冬粉',cat:'飯/麵',price:80,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'duck-noodle',name:'鹽水意麵',cat:'飯/麵',price:80,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'wonton-noodle',name:'餛飩油麵',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'wonton-flour',name:'餛飩米粉',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'wonton-rnoodle',name:'餛飩粄條',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'wonton-bnoodle',name:'餛飩冬粉',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'wonton-enoodle',name:'餛飩意麵',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'pb-noodle',name:'貢丸油麵',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'pb-flour',name:'貢丸米粉',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'pb-rnoodle',name:'貢丸粄條',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'pb-bnoodle',name:'貢丸冬粉',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'pb-enoodle',name:'貢丸意麵',cat:'飯/麵',price:100,v:[{t:'尺寸',o:['正常','加大']},{t:'型態',o:['乾','湯']}]},
+  {id:'wonton-soup',name:'餛飩湯',cat:'湯',price:60,v:[]},
+  {id:'pb-soup',name:'貢丸湯',cat:'湯',price:60,v:[]},
+  {id:'skirt-soup',name:'肝連湯',cat:'湯',price:80,v:[]},
+  {id:'lips-soup',name:'嘴邊肉湯',cat:'湯',price:80,v:[]},
+  {id:'veg-soup',name:'青菜湯',cat:'湯',price:60,v:[]},
+  {id:'meat-soup',name:'肉羹湯',cat:'湯',price:100,v:[]},
+  {id:'cfish-soup',name:'花枝羹湯',cat:'湯',price:100,v:[]},
+  {id:'squid-soup',name:'魚酥羹湯',cat:'湯',price:90,v:[]},
+  {id:'mixed-soup',name:'綜合羹湯',cat:'湯',price:120,v:[]},
+  {id:'veg',name:'燙青菜',cat:'小菜',price:60,v:[]},
+  {id:'bamboo',name:'滷筍絲',cat:'小菜',price:50,v:[]},
+  {id:'egg',name:'滷蛋',cat:'小菜',price:15,v:[]},
+  {id:'dtofu',name:'滷豆干',cat:'小菜',price:20,v:[]},
+  {id:'tofu',name:'滷豆腐',cat:'小菜',price:20,v:[]},
+  {id:'kelp',name:'滷海帶',cat:'小菜',price:15,v:[]},
+  {id:'porkskin',name:'滷豬皮',cat:'小菜',price:40,v:[]},
+  {id:'pork',name:'滷肉',cat:'小菜',price:100,v:[]},
+  {id:'skirt',name:'肝連',cat:'小菜',price:80,v:[]},
+  {id:'lips',name:'嘴邊肉',cat:'小菜',price:80,v:[]},
+];
+
+const CATS=['全部',...new Set(MENU.map(m=>m.cat))];
+const params=new URLSearchParams(location.search);
+const tableId=params.get('table')||'1';
+const isDinein=tableId!=='takeout';
+const tableLabel=isDinein?`${tableId} 號桌`:'外帶';
+
+let activeCat='全部',cart=[],pendItem=null,pendVars={};
+
+// header
+const pill=document.getElementById('tbl-pill');
+pill.textContent=isDinein?`🪑 ${tableLabel}`:`🥡 ${tableLabel}`;
+if(!isDinein)pill.classList.add('to');
+
+// cats
+function renderCats(){
+  document.getElementById('cat-bar').innerHTML=CATS.map(c=>
+    `<button class="cat-btn${c===activeCat?' on':''}" onclick="setCat('${c}')">${c}</button>`
+  ).join('');
+}
+function setCat(c){activeCat=c;renderCats();renderItems()}
+
+// items
+function renderItems(){
+  const items=activeCat==='全部'?MENU:MENU.filter(m=>m.cat===activeCat);
+  document.getElementById('items-wrap').innerHTML=items.map(m=>{
+    const qty=cart.filter(c=>c.item.id===m.id).reduce((s,c)=>s+c.qty,0);
+    return `<div class="card${qty?' picked':''}" onclick="tap('${m.id}')">
+      <div class="qty-pip">${qty}</div>
+      <div class="card-cat">${m.cat}</div>
+      <div class="card-name">${m.name}</div>
+      <div class="card-price">${m.price}</div>
+    </div>`;
+  }).join('');
+}
+
+function tap(id){
+  const m=MENU.find(x=>x.id===id);if(!m)return;
+  if(!m.v.length){addCart(m,{},'');return}
+  pendItem=m;pendVars={};
+  m.v.forEach(g=>pendVars[g.t]=g.o[0]);
+  document.getElementById('vname').textContent=m.name+` — $${m.price}`;
+  document.getElementById('vnote').value='';
+  document.getElementById('vgroups').innerHTML=m.v.map(g=>`
+    <div class="vgroup"><label>${g.t}</label><div class="vopts">
+    ${g.o.map(o=>`<button class="vopt${pendVars[g.t]===o?' on':''}" onclick="pv('${g.t}','${o}',this)">${o}</button>`).join('')}
+    </div></div>`).join('');
+  document.getElementById('vbg').classList.add('on');
+}
+function pv(t,o,el){pendVars[t]=o;el.closest('.vopts').querySelectorAll('.vopt').forEach(b=>b.classList.remove('on'));el.classList.add('on')}
+function confirmV(){addCart(pendItem,{...pendVars},document.getElementById('vnote').value.trim());closeV()}
+function closeV(){document.getElementById('vbg').classList.remove('on');pendItem=null}
+
+function addCart(item,vars,note){
+  const k=JSON.stringify(vars)+note;
+  const ex=cart.find(c=>c.item.id===item.id&&JSON.stringify(c.vars)+c.note===k);
+  if(ex)ex.qty++;else cart.push({item,qty:1,vars,note});
+  renderBar();renderItems();
+}
+function chgQty(i,d){cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);renderSheet();renderBar();renderItems()}
+
+function renderBar(){
+  const qty=cart.reduce((s,c)=>s+c.qty,0);
+  const total=cart.reduce((s,c)=>s+c.item.price*c.qty,0);
+  document.getElementById('cart-count').textContent=qty+' 項';
+  document.getElementById('cart-total').textContent=qty?` ／ $${total}`:'';
+  document.getElementById('cart-btn').disabled=!qty;
+}
+
+function openSheet(){renderSheet();document.getElementById('sheetbg').classList.add('on')}
+function closeSheet(){document.getElementById('sheetbg').classList.remove('on')}
+
+function renderSheet(){
+  const rows=document.getElementById('sheet-rows');
+  const total=cart.reduce((s,c)=>s+c.item.price*c.qty,0);
+  rows.innerHTML=cart.map((c,i)=>{
+    const vs=Object.values(c.vars).join('·');
+    const meta=[vs,c.note].filter(Boolean).join(' ｜ ');
+    return `<div class="srow">
+      <div class="sinfo"><div class="sname">${c.item.name}</div>${meta?`<div class="smeta">${meta}</div>`:''}</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+        <div class="sprice">$${c.item.price*c.qty}</div>
+        <div class="sqctrl">
+          <button class="sqbtn" onclick="chgQty(${i},-1)">−</button>
+          <span class="sqnum">${c.qty}</span>
+          <button class="sqbtn" onclick="chgQty(${i},1)">＋</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('sheet-total-val').textContent='$'+total;
+}
+
+function submitOrder(){
+  const oid='ORD-'+Date.now().toString(36).toUpperCase();
+  const total=cart.reduce((s,c)=>s+c.item.price*c.qty,0);
+  const order={
+    id:oid,
+    table:tableId,
+    tableLabel,
+    type:isDinein?'dinein':'takeout',
+    time:new Date().toLocaleString('zh-TW'),
+    ts:Date.now(),
+    items:cart.map(c=>({name:c.item.name,vars:c.vars,note:c.note,qty:c.qty,price:c.item.price,subtotal:c.item.price*c.qty})),
+    total,
+    status:'new'
+  };
+  // Push to localStorage queue
+  const q=JSON.parse(localStorage.getItem('gugu_orders')||'[]');
+  q.push(order);
+  localStorage.setItem('gugu_orders',JSON.stringify(q));
+  // Also fire storage event manually (same-tab)
+  window.dispatchEvent(new StorageEvent('storage',{key:'gugu_orders',newValue:JSON.stringify(q)}));
+
+  closeSheet();
+  document.getElementById('done-oid').textContent='訂單編號：'+oid;
+  document.getElementById('donebg').classList.add('on');
+}
+
+function addMore(){
+  cart=[];
+  document.getElementById('donebg').classList.remove('on');
+  renderBar();renderItems();
+}
+
+renderCats();renderItems();renderBar();
+</script>
+</body>
+</html>
