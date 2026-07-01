@@ -1,10 +1,34 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>咕嚕咕嚕 — 廚房出單</title>
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, onValue, update, remove, query, orderByChild } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAGuyqqLFG0lCoLEFlqZ9zddecgb7dH8uo",
+    authDomain: "kurupos.firebaseapp.com",
+    databaseURL: "https://kurupos-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "kurupos",
+    storageBucket: "kurupos.firebasestorage.app",
+    messagingSenderId: "41255191364",
+    appId: "1:41255191364:web:34922ed1779fe779fbcd11"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  window.__fbDb = db;
+  window.__fbRef = ref;
+  window.__fbOnValue = onValue;
+  window.__fbUpdate = update;
+  window.__fbRemove = remove;
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -140,28 +164,40 @@ header{background:var(--acc);height:58px;display:flex;align-items:center;padding
 let orders=[];
 let activeTab='all';
 let seenIds=new Set();
+let firstLoad=true;
 
-// ── LOAD ─────────────────────────────────────────────────────
-function loadOrders(){
-  try{ orders=JSON.parse(localStorage.getItem('gugu_orders')||'[]'); }
-  catch(e){ orders=[]; }
+// ── FIREBASE LISTEN ────────────────────────────────────────────
+function startFirebaseListener(){
+  const db=window.__fbDb, ref=window.__fbRef, onValue=window.__fbOnValue;
+  const ordersRef = ref(db,'orders');
+
+  onValue(ordersRef,(snapshot)=>{
+    const data=snapshot.val()||{};
+    const prevIds = orders.map(o=>o.fbKey);
+    orders = Object.keys(data).map(key=>({...data[key], fbKey:key}));
+
+    if(!firstLoad){
+      const newOnes = orders.filter(o=>!prevIds.includes(o.fbKey));
+      newOnes.forEach(o=>{
+        if(!seenIds.has(o.fbKey)){
+          seenIds.add(o.fbKey);
+          showToast(o);
+          playBeep();
+        }
+      });
+    } else {
+      orders.forEach(o=>seenIds.add(o.fbKey));
+      firstLoad=false;
+    }
+    render();
+  },(err)=>{
+    document.getElementById('live-badge').textContent='⚠️ 連線失敗';
+    document.getElementById('live-badge').style.background='rgba(255,80,80,.3)';
+    console.error('Firebase error:',err);
+  });
 }
 
-// ── STORAGE EVENT (cross-tab or same-tab dispatch) ────────────
-window.addEventListener('storage',e=>{
-  if(e.key!=='gugu_orders')return;
-  const prev=orders.map(o=>o.id);
-  loadOrders();
-  const newOnes=orders.filter(o=>!prev.includes(o.id));
-  newOnes.forEach(o=>{
-    if(!seenIds.has(o.id)){
-      seenIds.add(o.id);
-      showToast(o);
-      playBeep();
-    }
-  });
-  render();
-});
+window.addEventListener('firebase-ready', startFirebaseListener);
 
 // ── CLOCK ─────────────────────────────────────────────────────
 function tick(){
@@ -210,12 +246,8 @@ function setTab(tab){
 
 // ── RENDER ────────────────────────────────────────────────────
 function render(){
-  loadOrders();
   const sorted=[...orders].sort((a,b)=>{
-    const rank={new:0,doing:1,done:2};
-    return (rank[a.status]??0)-(rank[b.status]??0)||(b.ts-a.ts);
-  }).reverse().sort((a,b)=>{ // new first, then doing, done last
-    const r={new:0,doing:1,done:2};return (r[a.status]??0)-(r[b.status]??0);
+    const r={new:0,doing:1,done:2};return (r[a.status]??0)-(r[b.status]??0)||(b.ts-a.ts);
   });
 
   const filtered=activeTab==='all'?sorted:sorted.filter(o=>o.status===activeTab);
@@ -251,16 +283,16 @@ function orderCard(o){
 
   let actionBtns='';
   if(o.status==='new'){
-    actionBtns=`<button class="btn-action btn-start" onclick="setStatus('${o.id}','doing')">開始製作</button>`;
+    actionBtns=`<button class="btn-action btn-start" onclick="setStatus('${o.fbKey}','doing')">開始製作</button>`;
   } else if(o.status==='doing'){
     actionBtns=`
-      <button class="btn-action btn-undo" onclick="setStatus('${o.id}','new')">退回</button>
-      <button class="btn-action btn-done" onclick="setStatus('${o.id}','done')">✓ 完成出餐</button>`;
+      <button class="btn-action btn-undo" onclick="setStatus('${o.fbKey}','new')">退回</button>
+      <button class="btn-action btn-done" onclick="setStatus('${o.fbKey}','done')">✓ 完成出餐</button>`;
   } else {
-    actionBtns=`<button class="btn-action btn-undo" onclick="setStatus('${o.id}','doing')">重新開始</button>`;
+    actionBtns=`<button class="btn-action btn-undo" onclick="setStatus('${o.fbKey}','doing')">重新開始</button>`;
   }
 
-  return `<div class="ocard status-${o.status}" id="card-${o.id}">
+  return `<div class="ocard status-${o.status}" id="card-${o.fbKey}">
     <div class="ocard-head">
       <span class="ocard-table">${o.tableLabel}</span>
       <span class="ocard-type ${typeCls}">${typeLabel}</span>
@@ -271,32 +303,29 @@ function orderCard(o){
     <div class="ocard-foot">
       <span class="ocard-total">合計 <span>$${o.total}</span></span>
       <span style="font-size:.65rem;color:#bbb;margin-left:6px">${o.id}</span>
-      <button class="btn-action btn-print-ticket" onclick="printOrder('${o.id}')">🖨️</button>
+      <button class="btn-action btn-print-ticket" onclick="printOrder('${o.fbKey}')">🖨️</button>
       ${actionBtns}
     </div>
   </div>`;
 }
 
 // ── STATUS ────────────────────────────────────────────────────
-function setStatus(id,status){
-  loadOrders();
-  const o=orders.find(x=>x.id===id);
-  if(o){o.status=status;localStorage.setItem('gugu_orders',JSON.stringify(orders));}
-  render();
+function setStatus(fbKey,status){
+  const db=window.__fbDb, ref=window.__fbRef, update=window.__fbUpdate;
+  update(ref(db,'orders/'+fbKey),{status});
 }
 
 function clearDone(){
   if(!confirm('確定清除所有已完成訂單？'))return;
-  loadOrders();
-  orders=orders.filter(o=>o.status!=='done');
-  localStorage.setItem('gugu_orders',JSON.stringify(orders));
-  render();
+  const db=window.__fbDb, ref=window.__fbRef, remove=window.__fbRemove;
+  orders.filter(o=>o.status==='done').forEach(o=>{
+    remove(ref(db,'orders/'+o.fbKey));
+  });
 }
 
 // ── PRINT SINGLE ORDER ────────────────────────────────────────
-function printOrder(id){
-  loadOrders();
-  const o=orders.find(x=>x.id===id);
+function printOrder(fbKey){
+  const o=orders.find(x=>x.fbKey===fbKey);
   if(!o)return;
   const itemRows=o.items.map(it=>{
     const vs=it.vars?Object.values(it.vars).filter(Boolean).join('・'):'';
@@ -343,24 +372,7 @@ function toggleFilter(){
   setTab(tabs[(i+1)%tabs.length]);
 }
 
-// ── POLL fallback (same-tab, 1s) ──────────────────────────────
-let lastCount=0;
-setInterval(()=>{
-  const raw=localStorage.getItem('gugu_orders')||'[]';
-  const arr=JSON.parse(raw);
-  if(arr.length!==lastCount){
-    const newOnes=arr.filter(o=>!seenIds.has(o.id));
-    newOnes.forEach(o=>{seenIds.add(o.id);showToast(o);playBeep();});
-    lastCount=arr.length;
-    orders=arr;
-    render();
-  }
-},1000);
-
 // ── INIT ──────────────────────────────────────────────────────
-loadOrders();
-orders.forEach(o=>seenIds.add(o.id));
-lastCount=orders.length;
 render();
 </script>
 </body>

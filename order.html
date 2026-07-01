@@ -4,6 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>咕嚕咕嚕傳統小吃</title>
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAGuyqqLFG0lCoLEFlqZ9zddecgb7dH8uo",
+    authDomain: "kurupos.firebaseapp.com",
+    databaseURL: "https://kurupos-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "kurupos",
+    storageBucket: "kurupos.firebasestorage.app",
+    messagingSenderId: "41255191364",
+    appId: "1:41255191364:web:34922ed1779fe779fbcd11"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // expose to global scope so the non-module script below can use it
+  window.__firebaseDb = db;
+  window.__firebaseRef = ref;
+  window.__firebasePush = push;
+  window.__firebaseSet = set;
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -309,6 +334,9 @@ function renderSheet(){
   document.getElementById('sheet-total-val').textContent='$'+total;
 }
 
+let fbReady = false;
+window.addEventListener('firebase-ready', ()=>{ fbReady = true; });
+
 function submitOrder(){
   const oid='ORD-'+Date.now().toString(36).toUpperCase();
   const total=cart.reduce((s,c)=>s+c.item.price*c.qty,0);
@@ -323,16 +351,48 @@ function submitOrder(){
     total,
     status:'new'
   };
-  // Push to localStorage queue
-  const q=JSON.parse(localStorage.getItem('gugu_orders')||'[]');
-  q.push(order);
-  localStorage.setItem('gugu_orders',JSON.stringify(q));
-  // Also fire storage event manually (same-tab)
-  window.dispatchEvent(new StorageEvent('storage',{key:'gugu_orders',newValue:JSON.stringify(q)}));
 
+  // Disable button to prevent double-submit
+  const submitBtn = document.querySelector('.sheet-submit');
+  if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = '送出中…'; }
+
+  function doSubmit(){
+    try{
+      const db = window.__firebaseDb;
+      const ref = window.__firebaseRef;
+      const push = window.__firebasePush;
+      const set = window.__firebaseSet;
+      const newRef = push(ref(db, 'orders'));
+      set(newRef, order).then(()=>{
+        finishSubmit(oid);
+      }).catch(err=>{
+        alert('送單失敗，請檢查網路連線後再試一次\n'+err.message);
+        if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent='✓ 送出點單給廚房'; }
+      });
+    }catch(e){
+      alert('連線初始化中，請稍候 1 秒再試一次');
+      if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent='✓ 送出點單給廚房'; }
+    }
+  }
+
+  if(fbReady){ doSubmit(); }
+  else{
+    // wait briefly for firebase to finish loading
+    let tries=0;
+    const iv=setInterval(()=>{
+      tries++;
+      if(fbReady){ clearInterval(iv); doSubmit(); }
+      else if(tries>20){ clearInterval(iv); doSubmit(); /* attempt anyway */ }
+    },150);
+  }
+}
+
+function finishSubmit(oid){
   closeSheet();
   document.getElementById('done-oid').textContent='訂單編號：'+oid;
   document.getElementById('donebg').classList.add('on');
+  const submitBtn = document.querySelector('.sheet-submit');
+  if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent='✓ 送出點單給廚房'; }
 }
 
 function addMore(){
@@ -341,7 +401,12 @@ function addMore(){
   renderBar();renderItems();
 }
 
-renderCats();renderItems();renderBar();
+// 確保 DOM 完全載入後才執行
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>{renderCats();renderItems();renderBar();});
+}else{
+  renderCats();renderItems();renderBar();
+}
 </script>
 </body>
 </html>
